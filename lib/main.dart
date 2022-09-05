@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:calculadora/botones.dart';
-import 'package:math_expressions/math_expressions.dart';
+import 'package:calculadora/widgets/botones.dart';
+
+import 'package:calculadora/bloc/bloc_provider.dart';
+import 'package:calculadora/bloc/bloc_calculadora.dart';
 
 void main() {
   runApp(const MyApp());
@@ -9,13 +11,14 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: MyHomePage(),
-    );
+    return BlocProvider(
+        bloc: CalculatorBloc(),
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          home: MyHomePage(),
+        ));
   }
 }
 
@@ -25,12 +28,10 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-
   var userQuestion='';
   var userAnswer='';
-  var errorCero='';
-  bool puntoTap=false;
-
+  //var errorCero='';
+  //bool puntoTap=false;
 
   final List<String> buttons=[
     'C', 'DEL', '=', '/',
@@ -42,6 +43,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final calculatorBloc=BlocProvider.of<CalculatorBloc>(context);
     return Scaffold(
       backgroundColor: Colors.deepPurple[200],
       body: Column(
@@ -60,13 +62,13 @@ class _MyHomePageState extends State<MyHomePage> {
                   Container(
                     padding: EdgeInsets.all(20),
                     alignment: Alignment.centerRight,
-                    child: Text(userAnswer, style: TextStyle(fontSize: 30),),
+                    child: _buildAnswerText(calculatorBloc),
                   ),
-                  Container(
+                  /*Container(
                     padding: EdgeInsets.all(20),
                     alignment: Alignment.centerRight,
                     child: Text(errorCero, style: TextStyle(fontSize: 15, color: Colors.red),),
-                  ),
+                  ),*/
                 ],
               ),
             ),
@@ -79,136 +81,9 @@ class _MyHomePageState extends State<MyHomePage> {
                   itemCount: buttons.length,
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 4),
                     itemBuilder: (BuildContext context, int index){
-
-                      // Boton C
-                      if(index==0){
-                        return MyButton(
-                          buttonTap: (){
-                            setState(() {
-                              userQuestion='';
-                              userAnswer='';
-                              puntoTap=false;
-                            });
-                          },
-                          buttonText: buttons[index],
-                          color: Colors.teal,
-                          textColor: Colors.black,
-                        );
-                      }
-
-                      // Boton DEL
-                      if(index==1){
-                        return MyButton(
-                          buttonTap: (){
-                            setState(() {
-                              userQuestion=userQuestion.substring(0,userQuestion.length-1);
-                            });
-                          },
-                          buttonText: buttons[index],
-                          color: Colors.teal,
-                          textColor: Colors.black,
-                        );
-                      }
-
-                      // Boton =
-                      if(index==2){
-                        return MyButton(
-                          buttonTap: (){
-                            setState(() {
-                              igual();
-                            });
-                          },
-                          buttonText: buttons[index],
-                          color: Colors.teal,
-                          textColor: Colors.black,
-                        );
-                      }
-
-                      // Boton /
-                      if(index==3){
-                        return MyButton(
-                          buttonTap: (){
-                            setState(() {
-                              puntoTap=false;
-                              userQuestion+=buttons[index];
-                            });
-                          },
-                          buttonText: buttons[index],
-                          color: Colors.black,
-                          textColor: Colors.white,
-                        );
-                      }
-
-                      // Boton x
-                      if(index==7){
-                        return MyButton(
-                          buttonTap: (){
-                            setState(() {
-                              puntoTap=false;
-                              userQuestion+=buttons[index];
-                            });
-                          },
-                          buttonText: buttons[index],
-                          color: Colors.black,
-                          textColor: Colors.white,
-                        );
-                      }
-
-                      // Boton -
-                      if(index==11){
-                        return MyButton(
-                          buttonTap: (){
-                            setState(() {
-                              puntoTap=false;
-                              userQuestion+=buttons[index];
-                            });
-                          },
-                          buttonText: buttons[index],
-                          color: Colors.black,
-                          textColor: Colors.white,
-                        );
-                      }
-
-                      // Boton +
-                      if(index==15){
-                        return MyButton(
-                          buttonTap: (){
-                            setState(() {
-                              puntoTap=false;
-                              userQuestion+=buttons[index];
-                            });
-                          },
-                          buttonText: buttons[index],
-                          color: Colors.black,
-                          textColor: Colors.white,
-                        );
-                      }
-
-                      // Boton .
-                      if(index==17){
-                        return MyButton(
-                          buttonTap: (){
-                            if(puntoTap==false){
-                              setState(() {
-                                puntoTap=true;
-                                userQuestion+=buttons[index];
-                              });
-                            }
-                            else{
-                              userQuestion=userQuestion;
-                            };
-                          },
-                          buttonText: buttons[index],
-                          color: Colors.teal,
-                          textColor: Colors.black,
-                        );
-                      }
-
                       return MyButton(
-                        buttonTap: (){
-                            setState(() {
-                              userQuestion+=buttons[index];
-                            });
+                        buttonTap:() {
+                          calculatorBloc.pressKeySink.add(index);
                         },
                         buttonText: buttons[index],
                         color: isOperator(buttons[index]) ? Colors.black : Colors.teal,
@@ -232,24 +107,21 @@ class _MyHomePageState extends State<MyHomePage> {
     return false;
   }
 
-  void igual(){
-    String finalQuestion=userQuestion;
-    finalQuestion=finalQuestion.replaceAll('x', '*');
-    Parser p= Parser();
-    Expression exp= p.parse(finalQuestion);
-    ContextModel cm= ContextModel();
-    double eval=exp.evaluate(EvaluationType.REAL, cm);
-
-    userAnswer=eval.toString();
-    userQuestion=userAnswer;
-    puntoTap=false;
-
-    if(userAnswer=='NaN' || userAnswer=='Infinity' || userAnswer=='-Infinity'){
-      errorCero='No se puede dividir entre cero';
-      userQuestion='';
-    }
-    else{
-      errorCero='';
-    }
+  Widget _buildAnswerText(CalculatorBloc bloc) {
+    return StreamBuilder<String?>(
+      stream: bloc.calculatorStream,
+      builder: (context, snapshot) {
+        print("StreamBuilder: ${snapshot.data}"); // Muestra lo que sale en pantalla
+        var answer="";
+        if (snapshot.data!=null) {
+          answer=snapshot.data.toString();
+        }
+        return Text(
+          answer,
+          style: const TextStyle(
+              fontSize: 30,),
+        );
+      },
+    );
   }
 }
